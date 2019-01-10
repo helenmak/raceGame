@@ -1,4 +1,4 @@
-const getRandowBetween = (min, max) => {
+const getRandomBetween = (min, max) => {
   let randomMultiplier = Math.random()
   return randomMultiplier * (max - min) + min
 }
@@ -37,7 +37,7 @@ function initBoard() {
   const boardWidth = canvas.width = 500
   const boardHeight = canvas.height = 600
 
-  const initialCarXPos = getRandowBetween(0, boardWidth - carWidth)
+  const initialCarXPos = getRandomBetween(0, boardWidth - carWidth)
   const initialCarYPos = (boardHeight - bottomMargin - carHeight)
   const initialRoadXPos = 0
   const initialRoadYPos = 0
@@ -47,13 +47,13 @@ function initBoard() {
   let obstaclesPos = [{ x: 0, y: 0 }]
 
   const draw = ({
-                  roadXPos = roadPos.x,
-                  roadYPos = roadPos.y,
-                  carXPos = carPos.x,
-                  carYPos = carPos.y
+                  roadX = roadPos.x,
+                  roadY = roadPos.y,
+                  carX = carPos.x,
+                  carY = carPos.y
                 }) => {
-    ctx.drawImage(road, roadXPos, roadYPos, boardWidth, boardHeight)
-    ctx.drawImage(car, carXPos, carYPos, carWidth, carHeight)
+    ctx.drawImage(road, roadX, roadY, boardWidth, boardHeight)
+    ctx.drawImage(car, carX, carY, carWidth, carHeight)
   }
 
   car.onload = draw;
@@ -98,17 +98,28 @@ function initBoard() {
 
 
   const renderObstacles = () => {
-    const randomRoadParts = getRandowBetween(finish/(boardHeight/2), finish/boardHeight)
+    const randomRoadParts = getRandomBetween(finish/(boardHeight/2), finish/boardHeight)
     const obstaclesCount = Math.round(randomRoadParts)
-    const xPos = getRandowBetween(0, boardWidth - carWidth/1.2)
+    let obstacles = []
 
-    return function render(metersDone){
-      for (let i = 1; i < obstaclesCount; i++) {
-        console.log(i, 'y', (finish - metersDone)/i)
-        const initialYPos = boardHeight
-        const pos = { x: xPos, y: finish/boardHeight }
-        ctx.drawImage(car, xPos, (finish - metersDone)/boardHeight, carWidth/1.2, carHeight/1.2)
-      }
+    for (let i = 1; i < obstaclesCount; i++) {
+      const x = getRandomBetween(0, boardWidth - carWidth/1.2)
+      const y = getRandomBetween(0, finish)
+      obstacles.push({ x, y })
+    }
+
+    console.log('obstacles', obstacles)
+    return function render (metersDone) {
+      obstacles.forEach(obstacle => {
+        const obstacleShouldBeVisible = (obstacle.y >= metersDone) && (obstacle.y <= metersDone + boardHeight)
+        if (obstacleShouldBeVisible) {
+          console.log('visible!', obstacle.y, metersDone)
+          const boardsCount = obstacle.y / boardHeight
+          const yPosToRender = ((boardsCount - parseInt(boardsCount)) * boardHeight) - (obstacle.y - metersDone)
+          console.log(yPosToRender)
+          ctx.drawImage(car, obstacle.x, yPosToRender, carWidth/1.3, carHeight/1.3)
+        }
+      })
     }
   }
 
@@ -119,24 +130,33 @@ function initBoard() {
       roadPos.y += step
       metersDone += step
       ctx.drawImage(road, roadPos.x, roadPos.y, boardWidth, boardHeight)
+      ctx.drawImage(car, carPos.x, carPos.y, carWidth, carHeight)
       renderCurrentObstacles(metersDone)
     }
 
     if (movement.right) {
       if (carPos.x < (boardWidth - carWidth - sideMargin)) carPos.x += 10
+      ctx.drawImage(road, roadPos.x, roadPos.y, boardWidth, boardHeight)
+      ctx.drawImage(road, roadPos.x, (roadPos.y - boardHeight), boardWidth, boardHeight)
+      ctx.drawImage(car, carPos.x, carPos.y, carWidth, carHeight)
+      renderCurrentObstacles(metersDone)
     }
 
     if (movement.left) {
       if (carPos.x > sideMargin) carPos.x -= 10
-    }
-
-
-    if (roadPos.y > step) {
       ctx.drawImage(road, roadPos.x, roadPos.y, boardWidth, boardHeight)
       ctx.drawImage(road, roadPos.x, (roadPos.y - boardHeight), boardWidth, boardHeight)
+      ctx.drawImage(car, carPos.x, carPos.y, carWidth, carHeight)
+      renderCurrentObstacles(metersDone)
     }
 
-    ctx.drawImage(car, carPos.x, carPos.y, carWidth, carHeight)
+
+    if (movement.forward && roadPos.y > step) {
+      ctx.drawImage(road, roadPos.x, roadPos.y, boardWidth, boardHeight)
+      ctx.drawImage(road, roadPos.x, (roadPos.y - boardHeight), boardWidth, boardHeight)
+      ctx.drawImage(car, carPos.x, carPos.y, carWidth, carHeight)
+      renderCurrentObstacles(metersDone)
+    }
 
     if (roadPos.y >= boardHeight) roadPos.y = 0
 
@@ -147,7 +167,7 @@ function initBoard() {
     }
   }
 
-
+  ctx.drawImage(car, carPos.x, carPos.y, carWidth, carHeight)
   setInterval(renderCarMovement, second/fps)
 }
 
